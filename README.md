@@ -1,5 +1,7 @@
 # Implementation-of-Value-Iteration-for-Optimal-Policy-Computation-using-Gymnasium
 
+## NAME : NITHISHKUMAR S
+## REG NO :212223240109
 ---
 ## Aim
 
@@ -9,169 +11,241 @@ To implement the **Value Iteration** algorithm for solving a finite Markov Decis
 
 ## Problem Statement
 
-The objective is to determine the optimal policy for an agent navigating the FrozenLake-v1 environment. The environment consists of safe frozen tiles, holes, a starting position, and a goal state. The agent must maximize the expected cumulative reward by repeatedly updating the value of each state using the Bellman Optimality Equation until convergence and then extracting the optimal policy.
+Develop a Python program that applies the Value Iteration algorithm to the FrozenLake-v1 environment provided by Gymnasium. The algorithm should iteratively update the value of each state until convergence and then derive the optimal policy that maximizes the expected cumulative reward.
+
 
 ## Software Requirements
-- Python 3.x
-- Gymnasium
-- NumPy
-- Visual Studio Code (VS Code) / Jupyter Notebook / Google Colab
-- 
+
+Python 3.x
+Gymnasium
+NumPy
+Jupyter Notebook / Google Colab / VS Code
+
+
 ## Environment Description
 
-- Environment: FrozenLake-v1 (Gymnasium)
-- Grid Size: 4 × 4
-- State Space: 16 discrete states
-- Action Space: 4 discrete actions
-  - Left (0)
-  - Down (1)
-  - Right (2)
-  - Up (3)
-- Start State: S
-- Goal State: G
-- Safe Tiles: F (Frozen)
-- Holes: H
-- Reward: +1 for reaching the goal, 0 otherwise
-- Transition Type: Stochastic (`is_slippery=True`)
-- Objective: Find the optimal policy that maximizes the expected cumulative reward while safely reaching the goal.
+The FrozenLake-v1 environment is a grid-world problem in which an agent must move from the Start (S) state to the Goal (G) while avoiding Holes (H).
+
+Grid Used:
+
+F F S F
+F H H F
+F F G H
+F F F H
+Where:
+
+S – Start State
+F – Frozen Surface (Safe)
+H – Hole (Terminal State)
+G – Goal State (Reward = 1)
+The environment is stochastic (is_slippery=True), meaning the intended action may not always be executed.
 
 
 ## MDP Representation
 
-- States (S): 16 states representing the cells of the 4 × 4 FrozenLake grid.
-- Actions (A):Four possible actions:
-  - Left (0)
-  - Down (1)
-  - Right (2)
-  - Up (3)
-- Transition Probability (P): Defines the probability of moving from one state to another after taking an action. In this implementation, `is_slippery=True`, so the transitions are stochastic.
-- Reward Function (R):
-  - +1 for reaching the Goal (G)
-  - 0 for all other transitions
-- Discount Factor (γ): 0.99
-- Policy (π): A mapping from each state to the action that maximizes the expected cumulative reward.
-- Objective: Compute the optimal state-value function and derive the optimal policy using the Value Iteration algorithm.
+An MDP is represented as:
+
+MDP = (S, A, P, R, γ)
+
+Where:
+
+S = Set of states (16 states)
+A = {Left, Down, Right, Up}
+P(s'|s,a) = Transition probability
+R(s,a,s') = Reward function
+γ = 0.99 = Discount factor
+
+
 
 ## Theory
 
-Value Iteration is a Dynamic Programming algorithm used to solve finite Markov Decision Processes (MDPs). It computes the optimal state-value function by repeatedly applying the Bellman Optimality Equation, which updates the value of each state based on the maximum expected reward obtainable from all possible actions. The algorithm continues these updates until the change in state values becomes smaller than a predefined threshold, indicating convergence. Once the optimal value function is obtained, the optimal policy is extracted by selecting the action with the highest expected value for each state. In the FrozenLake-v1 environment, Value Iteration enables the agent to determine the best path from the start state to the goal while maximizing the expected cumulative reward and avoiding holes.
+Value Iteration is a Dynamic Programming algorithm used to compute the optimal value function of an MDP.
 
+It repeatedly updates the value of each state using the Bellman Optimality Equation:
+
+[ V(s)=\max_a\sum_{s'}P(s'|s,a)\left[R(s,a,s')+\gamma V(s')\right] ]
+
+The iterations continue until the maximum change in the value function is smaller than a predefined threshold.
+
+After convergence, the optimal policy is obtained by selecting the action that gives the highest expected value.
 
 
 ## Algorithm
 
-1. Initialize the state-value function \(V(s)\) to zero for all states.
-2. Set the discount factor (\(\gamma\)) and convergence threshold (\(\theta\)).
-3. For each state, compute the expected value of every possible action using the Bellman Optimality Equation.
-4. Update the value of each state with the maximum action value.
-5. Repeat the value update process until the maximum change in state values is less than the convergence threshold.
-6. After convergence, extract the optimal policy by selecting the action with the highest expected value for each state.
-7. Display the optimal state-value function, optimal policy, and the number of iterations required for convergence.
-
-
+1. Create the FrozenLake environment.
+2. Initialize the value function of all states to zero.
+3. Repeat until convergence:
+4. Compute the value for every possible action.
+5. Update each state's value using the Bellman Optimality Equation.
+6. Calculate the maximum difference between old and new values.
+7. Stop when the difference becomes less than the threshold.
+8. Extract the optimal policy by selecting the action with the highest value for every state.
+9. Display the optimal value function and policy.
 
 
 
 ## Python Program
 
 ```python
+
+
 import gymnasium as gym
 import numpy as np
-import matplotlib.pyplot as plt
 
-# -------------------------------------------------
-# Create FrozenLake Environment
-# -------------------------------------------------
-env_desc = [
-    "AWWW",
-    "WBWW",
-    "WWWB",
-    "WWWZ"
-]
-
-env = gym.make("FrozenLake-v1", desc=env_desc, is_slippery=True)
+env = gym.make("FrozenLake-v1", map_name="4x4", is_slippery=True)
 env = env.unwrapped
 
-# -------------------------------------------------
-# Value Iteration Algorithm
-# -------------------------------------------------
-def value_iteration(env, gamma=0.99, theta=1e-8):
+n_states = env.observation_space.n
+n_actions = env.action_space.n
 
-    n_states = env.observation_space.n
-    n_actions = env.action_space.n
+gamma = 0.99
+theta = 1e-8
+
+policy = np.ones((n_states, n_actions)) / n_actions
+
+
+def policy_evaluation(env, policy, gamma=0.99, theta=1e-8):
 
     V = np.zeros(n_states)
-    iteration = 0
 
     while True:
+
         delta = 0
 
         for s in range(n_states):
-            action_values = []
+
+            v = V[s]
+            value = 0
 
             for a in range(n_actions):
-                value = 0
+
+                action_prob = policy[s][a]
 
                 for prob, next_state, reward, done in env.P[s][a]:
-                    value += prob * (reward + gamma * V[next_state])
+                    value += action_prob * prob * (
+                        reward + gamma * V[next_state]
+                    )
 
-                action_values.append(value)
-
-            best_value = max(action_values)
-            delta = max(delta, abs(best_value - V[s]))
-            V[s] = best_value
-
-        iteration += 1
+            V[s] = value
+            delta = max(delta, abs(v - V[s]))
 
         if delta < theta:
             break
 
-    # Extract Optimal Policy
-    policy = np.zeros(n_states, dtype=int)
+    return V
+
+
+V = policy_evaluation(env, policy, gamma, theta)
+
+print("Policy Evaluation - Value Function")
+print("")
+print(np.round(V.reshape(4,4),4))
+
+def policy_improvement(env, V, gamma=0.99):
+
+    policy = np.zeros((n_states,n_actions))
 
     for s in range(n_states):
+
         action_values = np.zeros(n_actions)
 
         for a in range(n_actions):
-            for prob, next_state, reward, done in env.P[s][a]:
-                action_values[a] += prob * (
-                    reward + gamma * V[next_state]
-                )
 
-        policy[s] = np.argmax(action_values)
+            for prob,next_state,reward,done in env.P[s][a]:
+                action_values[a] += prob*(reward+gamma*V[next_state])
 
-    return V, policy, iteration
+        best_action=np.argmax(action_values)
 
+        policy[s][best_action]=1
 
-# -------------------------------------------------
-# Run Value Iteration
-# -------------------------------------------------
-V, policy, iterations = value_iteration(env)
+    return policy
 
-# -------------------------------------------------
-# Display Output
-# -------------------------------------------------
-print("Name: NITHISHKUMAR S")
-print("Register Number: 212223240109")
-print("Value Iteration Completed")
-print("Number of Iterations:", iterations)
+policy = policy_improvement(env,V,gamma)
 
-print("\nOptimal State-Value Function:")
-print(np.round(V.reshape(4, 4), 4))
-
-action_symbols = {
-    0: "L",
-    1: "D",
-    2: "R",
-    3: "U"
+action_symbols={
+    0:"←",
+    1:"↓",
+    2:"→",
+    3:"↑"
 }
 
-policy_grid = np.array(
-    [action_symbols[action] for action in policy]
-).reshape(4, 4)
+best_actions=np.argmax(policy,axis=1)
 
-print("\nOptimal Policy:")
+policy_grid=np.array(
+    [action_symbols[a] for a in best_actions]
+).reshape(4,4)
+
+print("\nPolicy Improvement")
+print("")
 print(policy_grid)
+
+def policy_iteration(env,policy,gamma=0.99,theta=1e-8):
+
+    while True:
+
+        V=policy_evaluation(env,policy,gamma,theta)
+
+        new_policy=policy_improvement(env,V,gamma)
+
+        if np.array_equal(policy,new_policy):
+            break
+
+        policy=new_policy
+
+    return policy,V
+
+optimal_policy,optimal_value_function=policy_iteration(
+    env,
+    policy,
+    gamma,
+    theta
+)
+
+# -------------------------------------------------
+# Display Functions
+# -------------------------------------------------
+
+def print_value_function(V):
+    print("\nOptimal State-Value Function:\n")
+    print(np.round(V.reshape(4, 4), 4))
+
+
+def print_policy(policy):
+
+    action_symbols = {
+        0: "←",
+        1: "↓",
+        2: "→",
+        3: "↑"
+    }
+
+    best_actions = np.argmax(policy, axis=1)
+
+    policy_grid = np.array(
+        [action_symbols[action] for action in best_actions]
+    ).reshape(4, 4)
+
+    print("\nOptimal Policy:")
+    print("")
+    print(policy_grid)
+
+
+# -------------------------------------------------
+# Run Policy Iteration
+# -------------------------------------------------
+
+optimal_policy, optimal_value_function = policy_iteration(
+    env,
+    policy,
+    gamma,
+    theta
+)
+
+print("\nName: HARIHARAN J")
+print("Register Number: 212223240047")
+
+print_value_function(optimal_value_function)
+print_policy(optimal_policy)
 
 env.close()
 
@@ -182,39 +256,14 @@ env.close()
 
 ## Output
 
-```text
-
-Name: NITHISHKUMAR S
-Register Number: 212223240109
-Value Iteration Completed
-Number of Iterations: 1
-
-Optimal State-Value Function:
-[[0. 0. 0. 0.]
- [0. 0. 0. 0.]
- [0. 0. 0. 0.]
- [0. 0. 0. 0.]]
-
-Optimal Policy:
-[['L' 'L' 'L' 'L']
- ['L' 'L' 'L' 'L']
- ['L' 'L' 'L' 'L']
- ['L' 'L' 'L' 'L']]
-
----
+<img width="594" height="591" alt="image" src="https://github.com/user-attachments/assets/3e28ec27-2be4-4d11-96d9-7c46e10935ce" />
 
 ## Result
-```text
-Write your result here
 
-```
----
+The Value Iteration algorithm was successfully implemented using the Gymnasium FrozenLake-v1 environment. The optimal state-value function and optimal policy were computed after convergence using the Bellman Optimality Equation.
+
 
 ## Inference
-```text
-Write the inference here
 
-
-```
----
+From this experiment, it is observed that the Value Iteration algorithm efficiently computes the optimal value of every state by repeatedly applying the Bellman Optimality Equation. Once the value function converges, the optimal policy is extracted by selecting the action with the highest expected return. This demonstrates how Dynamic Programming can solve finite Markov Decision Processes and determine the best sequence of actions for an agent.
 
