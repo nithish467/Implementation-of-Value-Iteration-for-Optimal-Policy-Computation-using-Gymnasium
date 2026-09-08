@@ -241,8 +241,8 @@ optimal_policy, optimal_value_function = policy_iteration(
     theta
 )
 
-print("\nName: HARIHARAN J")
-print("Register Number: 212223240047")
+print("\nName: NITHISHKUMAR S")
+print("Register Number: 212223240109")
 
 print_value_function(optimal_value_function)
 print_policy(optimal_policy)
@@ -256,7 +256,7 @@ env.close()
 
 ## Output
 
-<img width="594" height="591" alt="image" src="https://github.com/user-attachments/assets/3e28ec27-2be4-4d11-96d9-7c46e10935ce" />
+<img width="324" height="520" alt="image" src="https://github.com/user-attachments/assets/b427421a-f903-49e9-af04-5a7f66a41539" />
 
 ## Result
 
